@@ -38,15 +38,11 @@ torch.manual_seed(0)
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--query_datapath', type=str, default = None)
-parser.add_argument('--target_datapath', type=str, default = None)
-parser.add_argument('--supervised_datapath', type=str, default = None) # this is actually 9k data
-parser.add_argument('--supervised_labels', type=str, default = None) # this is actually 9k data
+parser.add_argument('--unlabelled_datapath', type=str, default = None)
+parser.add_argument('--supervised_datapath', type=str, default = None) 
+parser.add_argument('--supervised_labels', type=str, default = None) 
 
-parser.add_argument('--testing_query_input', type=str, default = None) # this is actually 9k data
-parser.add_argument('--output_testing_query_labels', type=str, default = None) # this is actually 9k data
-
-parser.add_argument('--output_qt_labels', type=str, default = None) # this is actually 9k data
+parser.add_argument('--output_labels', type=str, default = None) 
 parser.add_argument('--output_classifier', type=str, default = None)
 
 args=parser.parse_args()
@@ -58,12 +54,7 @@ args=parser.parse_args()
 
 
 # *******************************************************LOADING DATA******************************************************
-
-X_target=np.load(args.target_datapath)
-X_query=np.load(args.query_datapath)
-
-X = np.concatenate((X_query, X_target))
-# X = X_target
+X = np.load(args.unlabelled_datapath)
 
 # oneshot_data=np.load(path+'sample_images.npy')
 oneshot_data=np.load(args.supervised_datapath)
@@ -336,13 +327,9 @@ for epoch in range(epochs):
 
 torch.save(model, args.output_classifier)
 
+# for classification of the whole dataset after training 
 
-#classify query+target images and save
-
-X_target=np.load(args.target_datapath)
-X_query=np.load(args.query_datapath)
-
-X = np.concatenate((X_query, X_target))
+X = np.load(args.unlabelled_datapath)
 
 X = -1*((X)/255. -1.) #for making it a sparse matrix
 print('x ki shape', X.shape)
@@ -374,59 +361,7 @@ data_labels = predict(model, device, data_loader, True)
 data_labels.shape
 
 #save labels of query and target
-np.save(args.output_qt_labels, data_labels)
-
-
-
-
-
-
-#TESTING QUERY
-X=[] #this will contain 28,28 images
-
-# i = 0
-for img_name in sorted(os.listdir(args.testing_query_input)):
-    # i+=1
-    # if(i ==3):
-    #     break
-    img = np.array(Image.open(os.path.join(args.testing_query_input,img_name))) # 224,224 = 64 * 28,28
-    sub_imgs=np.split(img,8)
-    sub_imgs=[np.split(x_,8,axis=1) for x_ in sub_imgs]
-    sub_imgs=np.array(sub_imgs) # 8,8,28,28
-    sub_imgs=sub_imgs.reshape((-1,28,28))
-    X.append(sub_imgs)
-
-X=np.array(X)
-X_input_query=X.reshape((-1,28,28))
-
-
-X_input_query = -1*((X_input_query)/255. -1.) #for making it a sparse matrix
-
-
-batchsize = 128
-data_loader = DataLoader(X_input_query.reshape(-1, 1, 28, 28), batch_size=batchsize, shuffle=False)
-
-def predict(model, device, test_loader, use_cuda):
-    model.eval()
-    predictions = []
-    with torch.no_grad():
-        for data in test_loader:
-            data = data.to(device)
-            output = model(data.float())
-            pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
-            predictions.extend(pred.tolist())
-
-    # print(predictions)
-
-    return np.array(predictions)
-
-
-
-data_labels = predict(model, device, data_loader, True)
-print(data_labels.shape)
-
-#save labels of query and target
-np.save(args.output_testing_query_labels, data_labels)
+np.save(args.output_labels, data_labels)
 
 
 
