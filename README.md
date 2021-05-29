@@ -1,6 +1,6 @@
 # Semi-Supervised-Conditional-GAN
 
-For training the cGAN's
+For training the cGAN'sin a semi supervised manner, having a large number of unlabelled data and a very small fraction of labelled data.
 
 ```bash
 mkdir ./temp_saves #for saving the results
